@@ -25,13 +25,14 @@ class Simulate():
 
         # Hash Power
         self.avgInterArrivalTime = 600*1000
-        self.lowHashPow = 100 / (10 - 9*self.lowCpuPerc)
+        self.lowHashPow = (100 / (1000 - 9*self.lowCpuPerc))/numPeers
         self.highHashPow = 10*self.lowHashPow
 
         # rho_ij in ms, c_ij in bits/ms
         self.rho = np.random.uniform(10, 500, (self.numPeers, self.numPeers))
         self.c = [[]*self.numPeers]
         self.peers = []
+        self.Genisis = None
 
     def run(self):
         slows_mask = np.random.permutation([True] * int(self.numPeers * self.slowPerc/100) + [False] * (self.numPeers - int(self.numPeers * self.slowPerc/100)))
@@ -39,8 +40,6 @@ class Simulate():
         peers = []
         for i in range(self.numPeers):
             peers.append(Peer(i, slows_mask[i], lows_mask[i]))
-        
-
         
         CreateNetwork(peers)
 
@@ -50,15 +49,22 @@ class Simulate():
         self.c = [[5 if peers[i].isSlow or peers[j].isSlow else 100 for j in range(self.numPeers)] for i in range(self.numPeers)] * (1000)
 
         # Initializing Transaction ids and block ids
-        Genesis = Block(self.blk_id, None, -1, 0, None, [0]*self.numPeers, 0)
-        firstTask = Event(0, 'recBlock', 0, self, None, Genesis )
-        self.events.put(firstTask)
+        self.Genesis = Block(self.blk_id, None, -1, 0, None, [0]*self.numPeers, 0)
+        # firstTask = Event(0, 'recBlock', 0, self, None, self.Genesis)
+
+        for i in range(self.numPeers):
+            self.peers[i].longestBlk = self.Genesis
+            T_k = np.random.exponential(self.avgInterArrivalTime / (self.lowHashPow if self.peers[i].isLowCPU else self.highHashPow))
+            newTask = Event(T_k, 'genBlock', i, self, None, self.Genesis)
+            self.events.put(newTask)
+            self.events.put(Event(0, 'genTransaction', i, self, None, None))
 
         while (not self.events.empty()) and self.events.queue[0].time <= self.maxSimTime:
             event = self.events.get()
             print(event.event_type, event.peer_id, event.time)
             event.handleEvents()
 
+        print("Depth of longest chain for peer 0: ", self.peers[0].longestBlk.depth)
 
         print("Simulation completed")
         print("Total blocks mined: ", self.blk_id)

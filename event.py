@@ -33,13 +33,16 @@ class Event():
             
     def genTransaction(self):
         rec_id = np.random.choice([i for i in range(0, self.sim.numPeers) if i != self.peer_id])
-        amount = np.random.randint(1, self.sim.Peers[self.peer_id].balance)
+        if self.sim.peers[self.peer_id].longestBlk.balances[self.peer_id] == 0:
+            self.sim.events.put(Event(self.time + np.random.exponential(self.sim.txnDelayMeanTime), 'genTransaction', self.peer_id, self.sim))
+            return
+        amount = np.random.randint(1, self.sim.peers[self.peer_id].longestBlk.balances[self.peer_id])
         self.transaction = Transaction(self.sim.trxn_id, self.peer_id, rec_id, amount)
         self.sim.trxn_id += 1
         self.sim.peers[self.peer_id].transaction_ids.add(self.transaction.id)
         self.sim.peers[self.peer_id].transactions.append(self.transaction)
-        self.broadcast(self.peer_id)
-        self.sim.events.put((self.time + np.random.exponential(self.sim.txnDelayMeanTime), 'genTransaction', self.peer_id, self.sim))
+        self.broadcast()
+        self.sim.events.put(Event(self.time + np.random.exponential(self.sim.txnDelayMeanTime), 'genTransaction', self.peer_id, self.sim))
         return 
 
     def recTransaction(self):
@@ -47,7 +50,7 @@ class Event():
             return
         self.sim.peers[self.peer_id].transaction_ids.add(self.transaction.id)
         self.sim.peers[self.peer_id].transactions.append(self.transaction)
-        self.broadcast(self.peer_id)
+        self.broadcast()
         return 
 
     def verifyTrans(trans, balances):
@@ -110,13 +113,13 @@ class Event():
         self.broadcast()
         self.sim.peers[self.peer_id].block_ids.add(self.block.id)
         if self.verifyBlock(self.block):
-            if self.sim.peers[self.peer_id].longestBlk == None or self.block.depth > self.sim.peers[self.peer_id].longestBlk.depth or (self.block.depth == self.sim.peers[self.peer_id].longestBlk.depth and self.block.timestamp < self.sim.peers[self.peer_id].longestBlk.timestamp):
+            if self.block.depth > self.sim.peers[self.peer_id].longestBlk.depth or (self.block.depth == self.sim.peers[self.peer_id].longestBlk.depth and self.block.timestamp < self.sim.peers[self.peer_id].longestBlk.timestamp):
                 self.sim.peers[self.peer_id].longestBlk = self.block
                 T_k = np.random.exponential(self.sim.avgInterArrivalTime / (self.sim.lowHashPow if self.sim.peers[self.peer_id].isLowCPU else self.sim.highHashPow))
-                
                 newTask = Event(self.time + T_k, 'genBlock', self.peer_id, self.sim, None, self.block)
                 self.sim.events.put(newTask)
         return
+    
     def broadcast(self):
         size = -1
         eve_type = 'recBlock'

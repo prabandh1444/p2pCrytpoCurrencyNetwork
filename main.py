@@ -29,4 +29,3 @@ if __name__=="__main__":
 
     S = Simulate(numPeers, slowPerc, lowCpuPerc, txnDelayMeanTime, maxSimTime, maxBlockSize , maxTransactionSize, miningFee)
     S.run()
-    print("modda gudu")
