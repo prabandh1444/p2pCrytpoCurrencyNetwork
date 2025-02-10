@@ -29,22 +29,14 @@ class BlockTree:
             node.parent = parent_node
             cur_block = cur_block.prevBlock
             node = parent_node
-        # if block.prevBlock in self.nodes: 
-        #     parent_node = self.nodes[block.prevBlock]
-        # elif block.prevBlock.prevBlock in self.nodes:
-        #     parent_node = BlockNode(block.prevBlock.prevBlock,0)
-        #     self.nodes[block.prevBlock] = parent_node
-        #     parent_node.parent = self.nodes[block.prevBlock.prevBlock]
-        # else:
-        #     print("Unable to Print Tree")
-        #     exit(10)
         parent_node = self.nodes[cur_block.prevBlock]
         parent_node.children.append(node)
         node.parent = parent_node
     
     def dfs(self, node, fd, prefix="", is_last=True):   
         connector = "└── " if is_last else "├── "  
-        fd.write(prefix + connector + f"Block: {node.block.id} Time: {node.time}\n")
+        parent_id = node.block.prevBlock.id if node.block.prevBlock else 0
+        fd.write(prefix + connector + f"Block: {node.block.id} Time: {node.time} Parent: {parent_id}\n")
         new_prefix = prefix + ("    " if is_last else "│   ")
         for i, child in enumerate(node.children):
             last_child = (i == len(node.children) - 1)

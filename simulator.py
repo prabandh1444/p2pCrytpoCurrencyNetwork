@@ -25,7 +25,7 @@ class Simulate():
         self.blk_id = 1
 
         # Hash Power
-        self.avgInterArrivalTime = 300*1000
+        self.avgInterArrivalTime = 1000*1000
         self.lowHashPow = (100 / (1000 - 9*self.lowCpuPerc))/numPeers
         self.highHashPow = 10*self.lowHashPow
 
